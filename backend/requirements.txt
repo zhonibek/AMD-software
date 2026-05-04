@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+websockets
+scikit-learn
+pandas

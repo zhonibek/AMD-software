@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMD Stability Brain (ASB)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="logo-area">
+                <div class="logo-icon"></div>
+                <h1>AMD Stability Brain <span class="badge">PROTOTYPE</span></h1>
+            </div>
+            <div class="controls">
+                <button id="trigger-spike-btn" class="btn btn-outline">Simulate Spike</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-grid">
+            <!-- Telemetry Chart -->
+            <section class="card chart-card">
+                <div class="card-header">
+                    <h2>Real-time Frametime (ms)</h2>
+                    <div class="status-indicator" id="status-indicator">
+                        <span class="dot green"></span> Stable
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="frametimeChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Metrics & XAI Sidebar -->
+            <aside class="sidebar">
+                <!-- System Metrics -->
+                <div class="card metrics-card">
+                    <h2>System Telemetry</h2>
+                    <div class="metric-row">
+                        <span class="label">CPU Usage</span>
+                        <div class="progress-bar"><div class="fill" id="cpu-fill"></div></div>
+                        <span class="value" id="cpu-val">0%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">GPU Usage</span>
+                        <div class="progress-bar"><div class="fill" id="gpu-fill"></div></div>
+                        <span class="value" id="gpu-val">0%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">VRAM Usage</span>
+                        <div class="progress-bar"><div class="fill" id="vram-fill"></div></div>
+                        <span class="value" id="vram-val">0%</span>
+                    </div>
+                    <div class="metric-row highlight">
+                        <span class="label">Instability Risk</span>
+                        <span class="value risk-val" id="risk-val">0%</span>
+                    </div>
+                </div>
+
+                <!-- XAI Alert Panel -->
+                <div class="card alert-card hidden" id="xai-panel">
+                    <div class="alert-header">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <h2>Instability Predicted</h2>
+                    </div>
+                    <div class="xai-content">
+                        <p class="xai-cause"><strong>Cause:</strong> <span id="xai-cause-text">...</span></p>
+                        <p class="xai-explanation" id="xai-explanation-text">...</p>
+                    </div>
+                    <button id="fix-btn" class="btn btn-action glow">Apply Smart Fix</button>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
