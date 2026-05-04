@@ -10,6 +10,7 @@ import psutil
 import threading
 import subprocess
 import time
+import multiprocessing
 
 app = FastAPI()
 
@@ -67,19 +68,53 @@ class SimulationState:
 
 sim_state = SimulationState()
 
+# Global stress process trackers
+active_stress_processes = []
+memory_hog = []
+
 @app.post("/api/fix")
 async def apply_fix():
     """Endpoint triggered by the frontend Resolve button."""
+    global active_stress_processes, memory_hog
     sim_state.is_fixing = True
     sim_state.is_spiking = False
-    return {"status": "success", "message": "Smart Fix Applied. Frame pacing normalized."}
+    
+    # Kill the real stress processes
+    for p in active_stress_processes:
+        try:
+            p.kill()
+        except Exception:
+            pass
+    active_stress_processes.clear()
+    
+    # Release memory pressure
+    memory_hog.clear()
+    
+    return {"status": "success", "message": "Smart Fix Applied. Hardware normalized."}
 
 @app.post("/api/trigger_spike")
 async def trigger_spike():
-    """Endpoint to artificially trigger a stutter for demo purposes."""
+    """Endpoint to trigger real hardware stress for demo purposes."""
+    global active_stress_processes, memory_hog
     sim_state.is_spiking = True
     sim_state.is_fixing = False
-    return {"status": "success", "message": "Spike triggered."}
+    
+    # Start real CPU stress (Launch infinite loop powershell processes for every CPU core)
+    if not active_stress_processes:
+        cores = multiprocessing.cpu_count()
+        for _ in range(cores):
+            p = subprocess.Popen(['powershell', '-WindowStyle', 'Hidden', '-Command', 'while($true){}'])
+            active_stress_processes.append(p)
+            
+    # Cause real RAM stress
+    try:
+        # Allocate roughly 100MB blocks to pressure RAM naturally without crashing Python
+        for _ in range(multiprocessing.cpu_count() * 4):
+            memory_hog.append(" " * 1024 * 1024 * 100) 
+    except MemoryError:
+        pass
+        
+    return {"status": "success", "message": "Real hardware stress triggered."}
 
 def generate_telemetry():
     """Simulates realistic telemetry data, reacting to state."""
@@ -87,30 +122,16 @@ def generate_telemetry():
     
     real_ram = psutil.virtual_memory().percent
 
-    if sim_state.is_fixing:
-        # Simulate fix working by dropping CPU load artificially for demo
-        cpu = real_cpu_usage * 0.5
-        gpu = random.uniform(85, 95)
-        vram = real_ram * 0.8
-        frametime = random.uniform(16.0, 16.8)
-        
-        # Turn off fixing after a while to allow natural behavior again
-        if sim_state.tick % 100 == 0:
-             sim_state.is_fixing = False
-    elif sim_state.is_spiking:
-        # Severe stutter / Instability override for demo
-        cpu = 95.0 + random.uniform(0, 5)
-        gpu = random.uniform(40, 60) # GPU is starved
-        vram = 90 + random.uniform(0, 9) # Thrashing
-        frametime = random.uniform(30.0, 120.0) # Massive spikes
-    else:
-        # Use REAL SYSTEM METRICS
-        cpu = real_cpu_usage
-        # Use actual GPU usage polled by the background thread (fallback if 0)
-        gpu = real_gpu_usage if real_gpu_usage > 0 else (real_cpu_usage * 1.5 + random.uniform(2, 8))
-        gpu = min(max(gpu, 1.0), 99.0)
-        vram = real_ram # Use actual System RAM percentage
-        frametime = random.uniform(16.2, 17.5)
+    # ALWAYS USE REAL SYSTEM METRICS
+    cpu = real_cpu_usage
+    gpu = real_gpu_usage if real_gpu_usage > 0 else (real_cpu_usage * 1.5 + random.uniform(2, 8))
+    gpu = min(max(gpu, 1.0), 99.0)
+    vram = real_ram # Use actual System RAM percentage
+    
+    # Organically tie frametime to real CPU load to show stuttering visually
+    frametime = 16.5 + (cpu / 100.0) * random.uniform(10, 40)
+    if sim_state.is_fixing and sim_state.tick % 100 == 0:
+        sim_state.is_fixing = False
 
     # Predict stutter probability
     prob = 0.0
