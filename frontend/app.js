@@ -48,7 +48,7 @@ const config = {
 const chart = new Chart(ctx, config);
 
 // WebSocket Connection
-const ws = new WebSocket('ws://localhost:8000/ws/telemetry');
+const ws = new WebSocket('ws://127.0.0.1:8000/ws/telemetry');
 
 // DOM Elements
 const cpuFill = document.getElementById('cpu-fill');
@@ -129,14 +129,14 @@ function updateBar(fillEl, textEl, value) {
 
 // API Calls
 fixBtn.addEventListener('click', () => {
-    fetch('http://localhost:8000/api/fix', { method: 'POST' })
+    fetch('http://127.0.0.1:8000/api/fix', { method: 'POST' })
         .then(res => res.json())
         .then(data => console.log(data))
         .catch(err => console.error(err));
 });
 
 spikeBtn.addEventListener('click', () => {
-    fetch('http://localhost:8000/api/trigger_spike', { method: 'POST' })
+    fetch('http://127.0.0.1:8000/api/trigger_spike', { method: 'POST' })
         .then(res => res.json())
         .then(data => console.log(data))
         .catch(err => console.error(err));

@@ -6,14 +6,44 @@ import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import psutil
+import threading
+import subprocess
+import time
 
 app = FastAPI()
+
+# Initialize psutil
+psutil.cpu_percent()
+
+# Background thread for REAL system metrics
+real_cpu_usage = 0.0
+real_gpu_usage = 0.0
+
+def update_system_metrics():
+    global real_cpu_usage, real_gpu_usage
+    while True:
+        try:
+            # CPU polling (blocks for 1 second, giving highly accurate average like Task Manager)
+            real_cpu_usage = psutil.cpu_percent(interval=1.0)
+            
+            # GPU polling (matches Task Manager by taking the max utilization across all GPU engines)
+            cmd = ['powershell', '-Command', "(((Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction SilentlyContinue).CounterSamples | Measure-Object -Property CookedValue -Maximum).Maximum)"]
+            output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
+            val_str = output.strip().replace(',', '.')
+            if val_str:
+                real_gpu_usage = float(val_str)
+        except Exception:
+            pass
+
+threading.Thread(target=update_system_metrics, daemon=True).start()
+
 
 # Allow CORS for the frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -55,32 +85,32 @@ def generate_telemetry():
     """Simulates realistic telemetry data, reacting to state."""
     sim_state.tick += 1
     
+    real_ram = psutil.virtual_memory().percent
+
     if sim_state.is_fixing:
-        # Ideal smooth performance
-        cpu = random.uniform(30, 45)
+        # Simulate fix working by dropping CPU load artificially for demo
+        cpu = real_cpu_usage * 0.5
         gpu = random.uniform(85, 95)
-        vram = random.uniform(40, 60)
+        vram = real_ram * 0.8
         frametime = random.uniform(16.0, 16.8)
         
         # Turn off fixing after a while to allow natural behavior again
         if sim_state.tick % 100 == 0:
              sim_state.is_fixing = False
     elif sim_state.is_spiking:
-        # Severe stutter / Instability
-        cpu = random.uniform(80, 100)
+        # Severe stutter / Instability override for demo
+        cpu = 95.0 + random.uniform(0, 5)
         gpu = random.uniform(40, 60) # GPU is starved
-        vram = random.uniform(90, 99) # Thrashing
+        vram = 90 + random.uniform(0, 9) # Thrashing
         frametime = random.uniform(30.0, 120.0) # Massive spikes
     else:
-        # Normal fluctuation, occasional minor spike
-        cpu = random.uniform(40, 60)
-        gpu = random.uniform(90, 99)
-        vram = random.uniform(60, 80)
+        # Use REAL SYSTEM METRICS
+        cpu = real_cpu_usage
+        # Use actual GPU usage polled by the background thread (fallback if 0)
+        gpu = real_gpu_usage if real_gpu_usage > 0 else (real_cpu_usage * 1.5 + random.uniform(2, 8))
+        gpu = min(max(gpu, 1.0), 99.0)
+        vram = real_ram # Use actual System RAM percentage
         frametime = random.uniform(16.2, 17.5)
-        
-        # Randomly trigger a spike sometimes
-        if random.random() < 0.005:
-            sim_state.is_spiking = True
 
     # Predict stutter probability
     prob = 0.0
@@ -106,14 +136,14 @@ def generate_telemetry():
             explanation = "OS thread scheduler is delaying game render thread. Prioritization recommended."
 
     return {
-        "cpu": round(cpu, 1),
-        "gpu": round(gpu, 1),
-        "vram": round(vram, 1),
-        "frametime": round(frametime, 2),
-        "stutter_probability": round(prob, 3),
-        "alert": prob > 0.7,
-        "xai_cause": cause,
-        "xai_explanation": explanation
+        "cpu": float(round(cpu, 1)),
+        "gpu": float(round(gpu, 1)),
+        "vram": float(round(vram, 1)),
+        "frametime": float(round(frametime, 2)),
+        "stutter_probability": float(round(prob, 3)),
+        "alert": bool(prob > 0.7),
+        "xai_cause": str(cause),
+        "xai_explanation": str(explanation)
     }
 
 @app.websocket("/ws/telemetry")
