@@ -1,8 +1,9 @@
 fastapi
 uvicorn
-websockets
-scikit-learn
-pandas
 psutil
-python-dotenv
 pynput
+python-dotenv
+scikit-learn
+numpy
+transformers
+torch

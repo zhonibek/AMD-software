@@ -1,74 +1,39 @@
-# 🧠 PCMANai: The Local Evolving Hardware Brain
+# 🧠 PCMANai (AMD Stability Brain)
 
-**PCMANai** (Personal Computing Management Artificial Intelligence) is a state-of-the-art, autonomous PC optimization agent. Unlike traditional "game boosters" that rely on static rules, PCMANai utilizes a local **Contextual Bandit Neural Network** to learn, evolve, and optimize your specific hardware environment in real-time.
+An autonomous, closed-loop **AI Hardware Assistant** built for the AMD AI Developer Competition. PCMANai observes real-time system telemetry, reasons using a custom local Deep Learning Neural Network, and acts using expert-level Windows/AMD optimizations to eliminate input lag and frametime stutters.
 
-![PCMANai Dashboard Prototype](https://img.shields.io/badge/Status-Prototype-red?style=for-the-badge)
-![AI-Powered](https://img.shields.io/badge/AI-Reinforcement_Learning-blue?style=for-the-badge)
-![Local-Execution](https://img.shields.io/badge/Environment-Local_Only-green?style=for-the-badge)
+## 🏆 Hackathon Categories Targeted
 
----
+This project was specifically engineered to dominate multiple competition tracks by combining local Reinforcement Learning with Hugging Face LLMs:
 
-## 🚀 Key Features
+- ✅ **Agent Builder Track - The INTERNET OF AGENTS:** PCMANai is a true autonomous agent. It observes state, selects from an action space of hardware tools, executes them, measures the reward, and updates its Neural weights in a continuous loop.
+- ✅ **AI Agents & Agentic Workflows:** The system requires zero human input after initialization. It uses an Epsilon-Greedy RL loop to explore and exploit performance tweaks.
+- ✅ **Hugging Face & Qwen:** PCMANai utilizes a local **Qwen 2.5** language model via the **Hugging Face `transformers` API** to dynamically generate Explainable AI (XAI) justifications for its actions in real-time.
+- ✅ **Assistant:** PCMANai acts as an invisible background assistant that autonomously tunes your PC for maximum gaming and productivity performance.
 
-### 1. Self-Evolving Local AI
-PCMANai has completely moved away from external LLMs like ChatGPT. It runs a local **SGDRegressor** (Scikit-Learn) that observes your hardware metrics and "discovers" the best optimizations through Reinforcement Learning. It saves its experience permanently to a `pcman_brain.pkl` file, getting smarter every time you use your PC.
+## 🛠️ Technology Stack & AI Architecture
 
-### 2. High-Fidelity Telemetry
-Monitor your system with surgical precision:
-- **Input Lag Analyzer:** Uses a global OS-level hook to measure the micro-latency between mouse clicks and processing frames.
-- **Frametime Tracking:** Real-time Chart.js visualization of frame delivery consistency.
-- **Full Hardware Stack:** Live tracking of CPU, GPU, VRAM, RAM, Disk Active Time, and Network Ping.
+1. **Deep Learning Brain (`scikit-learn`):** A custom Multi-Layer Perceptron (MLP) Neural Network acting as a Contextual Bandit. It uses a `StandardScaler` to normalize real-time CPU, GPU, RAM, Disk, Ping, Frametime, and Input Lag telemetry.
+2. **Experience Replay Memory:** The Agent maintains a memory buffer of past states and rewards to train on mini-batches, rapidly accelerating its learning curve.
+3. **Local Hugging Face LLM (Qwen):** A local implementation of `Qwen2.5-0.5B-Instruct` is used for the Agent's reasoning loop. Instead of black-box fixes, the Agent explains exactly why it applied a tweak in plain English.
+4. **AMD-Specific Optimizations:** The Agent can autonomously scan the registry to disable Ultra-Low Power State (ULPS) on AMD Radeon GPUs to stabilize competitive frametimes.
 
-### 3. Anomaly Simulation Suite
-Test the AI's "intelligence" by unleashing intentional hardware stressors from the dashboard:
-- **CPU Spikes:** Mathematical stress loops.
-- **Input Lag Spikes:** High-priority scheduler starvation.
-- **Memory Leaks:** Forced RAM thrashing and pagefile swapping.
-- **Disk Thrashing:** Simulated background service saturation.
-- **Bad Core Affinity:** Forcing heavy tasks onto Core 0 (the OS critical core).
-- **Ping Spikes:** Simulated network congestion.
+## 🚀 How to Run
 
-### 4. Advanced Optimization Toolkit
-PCMANai can deploy a variety of system-level "synapses" to fix lag:
-- **Ultimate Performance Toggling:** Switches Windows power plans dynamically.
-- **Process Affinity Masking:** Moves background noise away from critical CPU cores.
-- **Standby List Flushing:** Instantly purges cached RAM to stop micro-stutters.
-- **Priority Escalation:** Boosts foreground application priority to `High`.
-- **Registry Tweaking:** Real-time modification of `TcpNoDelay` and `Win32PrioritySeparation`.
+1. Clone the repository.
+2. Run `pip install -r backend/requirements.txt`.
+3. Double click `launch.bat` to boot the backend Uvicorn server and open the Dashboard.
+4. Click **"Run Diagnostic"** to watch the Neural Network calculate Q-Values and train itself in real-time!
 
----
+## 🧩 The Action Space (Tools)
 
-## 🛠️ Technical Stack
-
-- **Backend:** Python 3.10+, FastAPI (Asynchronous API), WebSockets (Real-time data streaming).
-- **AI/ML:** Scikit-Learn (Incremental Learning), NumPy.
-- **System Control:** Psutil, Pynput, Winreg, Ctypes.
-- **Frontend:** Vanilla HTML5, CSS3 (Glassmorphism design), Javascript (ES6), Chart.js.
+The AI Agent has access to the following real-world system tools:
+- `disable_amd_ulps`: Fixes AMD GPU sleep-state stutters.
+- `unpark_cpu_cores`: Eliminates CPU wake-up latency.
+- `disable_windows_game_bar`: Stops GameDVR micro-stutters.
+- `optimize_mouse_keyboard_buffer`: Decreases input lag buffer sizes in the registry.
+- `prioritize_foreground_app`: Automatically sets the active game to HIGH priority.
+- `clear_standby_memory`: Flushes RAM caches to prevent disk thrashing.
 
 ---
-
-## ⚡ Quick Start
-
-### 1. Requirements
-Ensure you have Python installed and an elevated (Administrator) terminal:
-```bash
-pip install -r backend/requirements.txt
-```
-
-### 2. Launch
-Simply run the included batch file to start the backend and frontend:
-```bash
-./launch.bat
-```
-*Note: Administrator privileges are required for Registry and Process Priority optimizations to work.*
-
-### 3. Training the Brain
-Open the dashboard at `http://localhost:8000`. Choose an anomaly from the dropdown and click **"Simulate Anomaly"**. Watch the **Synapse Log** in the bottom right as PCMANai tries different tools, measures the reward, and learns how to fix your PC.
-
----
-
-## 🛡️ Safety & Privacy
-PCMANai is **100% Local**. No telemetry or hardware data is ever sent to the cloud. The AI's "thoughts" stay on your machine.
-
----
-*Developed for the AMD Challenge. Empowering hardware with autonomous intelligence.*
+*Built autonomously using DeepMind Antigravity for the Lablab.ai AMD Developer Competition.*

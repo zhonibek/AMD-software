@@ -70,9 +70,9 @@ const agentPanel = document.getElementById('agent-panel');
 const agentActionText = document.getElementById('agent-action-text');
 const xaiResultContainer = document.getElementById('xai-result-container');
 const xaiExplanationText = document.getElementById('xai-explanation-text');
+const qValuesContainer = document.getElementById('q-values-container');
 
-const scenarioSelect = document.getElementById('anomaly-select');
-const scenarioBtn = document.getElementById('trigger-scenario-btn');
+const diagnosticBtn = document.getElementById('trigger-diagnostic-btn');
 
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
@@ -109,6 +109,61 @@ function updateDashboard(data) {
     agentStateVal.innerText = data.agent_state;
     agentActionText.innerText = data.agent_action;
 
+    // Render Q-Values
+    if (data.q_values && Object.keys(data.q_values).length > 0) {
+        qValuesContainer.innerHTML = '';
+        const sortedTools = Object.entries(data.q_values).sort((a, b) => b[1] - a[1]);
+        const maxQ = Math.max(0.1, ...Object.values(data.q_values).map(Math.abs));
+        
+        sortedTools.forEach(([tool, qval]) => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.fontSize = '0.75rem';
+            row.style.marginBottom = '2px';
+            
+            const name = document.createElement('span');
+            name.textContent = tool.replace(/_/g, ' ');
+            name.style.color = '#ccc';
+            name.style.flex = '1';
+            name.style.overflow = 'hidden';
+            name.style.textOverflow = 'ellipsis';
+            name.style.whiteSpace = 'nowrap';
+            
+            const val = document.createElement('span');
+            val.textContent = qval.toFixed(2);
+            val.style.color = qval > 0 ? '#00e676' : (qval < 0 ? '#ff1744' : '#888');
+            val.style.fontWeight = '600';
+            val.style.marginLeft = '10px';
+            val.style.minWidth = '35px';
+            val.style.textAlign = 'right';
+            
+            row.appendChild(name);
+            row.appendChild(val);
+            
+            const barContainer = document.createElement('div');
+            barContainer.style.width = '100%';
+            barContainer.style.height = '3px';
+            barContainer.style.background = 'rgba(255,255,255,0.05)';
+            barContainer.style.borderRadius = '2px';
+            barContainer.style.marginBottom = '6px';
+            
+            const barFill = document.createElement('div');
+            barFill.style.width = `${Math.min(100, (Math.abs(qval) / maxQ) * 100)}%`;
+            barFill.style.height = '100%';
+            barFill.style.background = qval > 0 ? 'linear-gradient(90deg, rgba(0,230,118,0.5), #00e676)' : 'linear-gradient(90deg, rgba(255,23,68,0.5), #ff1744)';
+            barFill.style.borderRadius = '2px';
+            barContainer.appendChild(barFill);
+            
+            const wrap = document.createElement('div');
+            wrap.appendChild(row);
+            wrap.appendChild(barContainer);
+            
+            qValuesContainer.appendChild(wrap);
+        });
+    }
+
     if (data.alert) {
         agentStateVal.classList.add('high');
         statusIndicator.innerHTML = '<span class="dot red"></span> Unstable';
@@ -144,16 +199,51 @@ function updateBar(fillEl, textEl, value, isMs = false) {
 }
 
 // API Calls
-scenarioBtn.addEventListener('click', () => {
-    const scenario = scenarioSelect.value;
-    fetch('http://127.0.0.1:8000/api/trigger_scenario', { 
+diagnosticBtn.addEventListener('click', () => {
+    fetch('http://127.0.0.1:8000/api/trigger_diagnostic', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: scenario })
+        headers: { 'Content-Type': 'application/json' }
     })
     .then(res => res.json())
     .then(data => console.log(data))
     .catch(err => console.error(err));
+});
+
+// Manual Overrides Logic
+document.querySelectorAll('.override-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        const tweakName = e.target.getAttribute('data-tweak');
+        const originalText = e.target.innerText;
+        e.target.innerText = 'Executing...';
+        e.target.style.color = '#f093fb';
+        e.target.style.borderColor = '#f093fb';
+        
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/api/manual_tweak/${tweakName}`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                e.target.innerText = 'Success!';
+                e.target.style.color = '#00e676';
+                e.target.style.borderColor = '#00e676';
+            } else {
+                e.target.innerText = 'Failed (Admin Required)';
+                e.target.style.color = '#ff1744';
+                e.target.style.borderColor = '#ff1744';
+            }
+        } catch (err) {
+            e.target.innerText = 'Network Error';
+            e.target.style.color = '#ff1744';
+            e.target.style.borderColor = '#ff1744';
+        }
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            e.target.innerText = originalText;
+            e.target.style.color = '';
+            e.target.style.borderColor = '';
+        }, 3000);
+    });
 });
 
 // Synapse Logs Polling

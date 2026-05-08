@@ -17,15 +17,7 @@
                 <h1>PCMANai <span class="badge">PROTOTYPE</span></h1>
             </div>
             <div class="controls" style="display: flex; gap: 10px; align-items: center;">
-                <select id="anomaly-select" style="background: #121212; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 6px; outline: none; font-family: inherit;">
-                    <option value="cpu_heavy">CPU Spike (Frametime Lag)</option>
-                    <option value="input_lag_spike">Input Lag Spike (High Priority Loops)</option>
-                    <option value="memory_leak">Memory Leak (RAM Thrashing)</option>
-                    <option value="disk_thrash">Disk Thrashing (100% Usage)</option>
-                    <option value="bad_affinity">Bad Core Affinity (Core 0 Bottleneck)</option>
-                    <option value="ping_spike">Network Congestion (High Ping)</option>
-                </select>
-                <button id="trigger-scenario-btn" class="btn btn-outline" style="border-color: #ff1744; color: #ff1744;">Simulate Anomaly</button>
+                <button id="trigger-diagnostic-btn" class="btn btn-outline" style="border-color: #00e676; color: #00e676;">Run Diagnostic</button>
             </div>
         </header>
 
@@ -97,6 +89,26 @@
                             <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
                             <p class="xai-explanation" id="xai-explanation-text">...</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Q-Value Panel -->
+                <div class="card metrics-card" style="margin-top: 1.5rem;" id="q-value-panel">
+                    <h2>Live Neural Net Q-Values</h2>
+                    <div id="q-values-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                        <span style="color: #888; font-size: 0.85rem;">Waiting for AI telemetry...</span>
+                    </div>
+                </div>
+
+                <!-- Manual Overrides Panel -->
+                <div class="card metrics-card" style="margin-top: 1.5rem;" id="manual-overrides-panel">
+                    <h2>Manual System Overrides</h2>
+                    <p style="font-size: 0.75rem; color: #888; margin-bottom: 10px;">Aggressive, permanent Windows optimizations. Use with caution.</p>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn btn-outline override-btn" data-tweak="disable_telemetry">Disable Windows Telemetry</button>
+                        <button class="btn btn-outline override-btn" data-tweak="disable_fso">Disable Fullscreen Optimizations</button>
+                        <button class="btn btn-outline override-btn" data-tweak="deep_flush">Deep System Flush (DNS/Temp)</button>
+                        <button class="btn btn-outline override-btn" data-tweak="disable_bg_apps">Disable Background Apps</button>
                     </div>
                 </div>
 
