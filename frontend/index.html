@@ -14,10 +14,18 @@
         <header class="dashboard-header">
             <div class="logo-area">
                 <div class="logo-icon"></div>
-                <h1>AMD Stability Brain <span class="badge">PROTOTYPE</span></h1>
+                <h1>PCMANai <span class="badge">PROTOTYPE</span></h1>
             </div>
-            <div class="controls">
-                <button id="trigger-spike-btn" class="btn btn-outline">Simulate Spike</button>
+            <div class="controls" style="display: flex; gap: 10px; align-items: center;">
+                <select id="anomaly-select" style="background: #121212; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 6px; outline: none; font-family: inherit;">
+                    <option value="cpu_heavy">CPU Spike (Frametime Lag)</option>
+                    <option value="input_lag_spike">Input Lag Spike (High Priority Loops)</option>
+                    <option value="memory_leak">Memory Leak (RAM Thrashing)</option>
+                    <option value="disk_thrash">Disk Thrashing (100% Usage)</option>
+                    <option value="bad_affinity">Bad Core Affinity (Core 0 Bottleneck)</option>
+                    <option value="ping_spike">Network Congestion (High Ping)</option>
+                </select>
+                <button id="trigger-scenario-btn" class="btn btn-outline" style="border-color: #ff1744; color: #ff1744;">Simulate Anomaly</button>
             </div>
         </header>
 
@@ -56,23 +64,48 @@
                         <div class="progress-bar"><div class="fill" id="vram-fill"></div></div>
                         <span class="value" id="vram-val">0%</span>
                     </div>
+                    <div class="metric-row">
+                        <span class="label">Input Lag</span>
+                        <div class="progress-bar"><div class="fill" id="input-lag-fill"></div></div>
+                        <span class="value" id="input-lag-val">0ms</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Disk Usage</span>
+                        <div class="progress-bar"><div class="fill" id="disk-fill"></div></div>
+                        <span class="value" id="disk-val">0%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="label">Network Ping</span>
+                        <div class="progress-bar"><div class="fill" id="ping-fill"></div></div>
+                        <span class="value" id="ping-val">15ms</span>
+                    </div>
                     <div class="metric-row highlight">
-                        <span class="label">Instability Risk</span>
-                        <span class="value risk-val" id="risk-val">0%</span>
+                        <span class="label">Agent State</span>
+                        <span class="value risk-val" id="agent-state-val">IDLE</span>
                     </div>
                 </div>
 
-                <!-- XAI Alert Panel -->
-                <div class="card alert-card hidden" id="xai-panel">
+                <!-- Agent Panel -->
+                <div class="card alert-card" id="agent-panel">
                     <div class="alert-header">
-                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        <h2>Instability Predicted</h2>
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                        <h2>Agent reasoning loop</h2>
                     </div>
                     <div class="xai-content">
-                        <p class="xai-cause"><strong>Cause:</strong> <span id="xai-cause-text">...</span></p>
-                        <p class="xai-explanation" id="xai-explanation-text">...</p>
+                        <p class="xai-cause"><strong>Current Action:</strong> <span id="agent-action-text">Monitoring...</span></p>
+                        <div id="xai-result-container" class="hidden">
+                            <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+                            <p class="xai-explanation" id="xai-explanation-text">...</p>
+                        </div>
                     </div>
-                    <button id="fix-btn" class="btn btn-action glow">Apply Smart Fix</button>
+                </div>
+
+                <!-- Synapse Logs -->
+                <div class="card chat-card" style="margin-top: 1.5rem; display: flex; flex-direction: column; height: 350px;">
+                    <h2>PCMANai Synapse Log</h2>
+                    <div id="synapse-logs" style="flex: 1; overflow-y: auto; margin: 10px 0; padding-right: 5px; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; font-family: monospace;">
+                        <div style="color: #00e676;">[SYSTEM] Initializing PCMANai neural pathways...</div>
+                    </div>
                 </div>
             </aside>
         </main>

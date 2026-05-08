@@ -57,15 +57,22 @@ const gpuFill = document.getElementById('gpu-fill');
 const gpuVal = document.getElementById('gpu-val');
 const vramFill = document.getElementById('vram-fill');
 const vramVal = document.getElementById('vram-val');
-const riskVal = document.getElementById('risk-val');
+const inputLagFill = document.getElementById('input-lag-fill');
+const inputLagVal = document.getElementById('input-lag-val');
+const diskFill = document.getElementById('disk-fill');
+const diskVal = document.getElementById('disk-val');
+const pingFill = document.getElementById('ping-fill');
+const pingVal = document.getElementById('ping-val');
+const agentStateVal = document.getElementById('agent-state-val');
 
 const statusIndicator = document.getElementById('status-indicator');
-const xaiPanel = document.getElementById('xai-panel');
-const xaiCauseText = document.getElementById('xai-cause-text');
+const agentPanel = document.getElementById('agent-panel');
+const agentActionText = document.getElementById('agent-action-text');
+const xaiResultContainer = document.getElementById('xai-result-container');
 const xaiExplanationText = document.getElementById('xai-explanation-text');
 
-const fixBtn = document.getElementById('fix-btn');
-const spikeBtn = document.getElementById('trigger-spike-btn');
+const scenarioSelect = document.getElementById('anomaly-select');
+const scenarioBtn = document.getElementById('trigger-scenario-btn');
 
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
@@ -94,30 +101,39 @@ function updateDashboard(data) {
     updateBar(cpuFill, cpuVal, data.cpu);
     updateBar(gpuFill, gpuVal, data.gpu);
     updateBar(vramFill, vramVal, data.vram);
+    updateBar(inputLagFill, inputLagVal, data.input_lag, true);
+    updateBar(diskFill, diskVal, data.disk);
+    updateBar(pingFill, pingVal, data.ping, true);
 
-    // Update Risk
-    const riskPercent = (data.stutter_probability * 100).toFixed(1);
-    riskVal.innerText = `${riskPercent}%`;
+    // Update Agent State
+    agentStateVal.innerText = data.agent_state;
+    agentActionText.innerText = data.agent_action;
+
     if (data.alert) {
-        riskVal.classList.add('high');
+        agentStateVal.classList.add('high');
         statusIndicator.innerHTML = '<span class="dot red"></span> Unstable';
         
-        // Show Alert
-        xaiPanel.classList.remove('hidden');
-        xaiCauseText.innerText = data.xai_cause.replace(/_/g, ' ');
-        xaiExplanationText.innerText = data.xai_explanation;
+        // Show Agent loop active
+        agentPanel.classList.add('glow');
+        xaiResultContainer.classList.add('hidden');
     } else {
-        riskVal.classList.remove('high');
+        agentStateVal.classList.remove('high');
         statusIndicator.innerHTML = '<span class="dot green"></span> Stable';
         
-        // Hide Alert
-        xaiPanel.classList.add('hidden');
+        agentPanel.classList.remove('glow');
+        
+        if (data.xai_explanation) {
+            xaiResultContainer.classList.remove('hidden');
+            xaiExplanationText.innerText = data.xai_explanation;
+        } else {
+            xaiResultContainer.classList.add('hidden');
+        }
     }
 }
 
-function updateBar(fillEl, textEl, value) {
-    fillEl.style.width = `${value}%`;
-    textEl.innerText = `${value.toFixed(1)}%`;
+function updateBar(fillEl, textEl, value, isMs = false) {
+    fillEl.style.width = isMs ? `${Math.min(value, 100)}%` : `${value}%`;
+    textEl.innerText = isMs ? `${value.toFixed(1)}ms` : `${value.toFixed(1)}%`;
     
     // Color gradient based on usage
     if(value > 85) {
@@ -128,16 +144,44 @@ function updateBar(fillEl, textEl, value) {
 }
 
 // API Calls
-fixBtn.addEventListener('click', () => {
-    fetch('http://127.0.0.1:8000/api/fix', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => console.log(data))
-        .catch(err => console.error(err));
+scenarioBtn.addEventListener('click', () => {
+    const scenario = scenarioSelect.value;
+    fetch('http://127.0.0.1:8000/api/trigger_scenario', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario: scenario })
+    })
+    .then(res => res.json())
+    .then(data => console.log(data))
+    .catch(err => console.error(err));
 });
 
-spikeBtn.addEventListener('click', () => {
-    fetch('http://127.0.0.1:8000/api/trigger_spike', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => console.log(data))
-        .catch(err => console.error(err));
-});
+// Synapse Logs Polling
+const synapseLogsContainer = document.getElementById('synapse-logs');
+
+async function fetchSynapseLogs() {
+    try {
+        const res = await fetch('http://127.0.0.1:8000/api/logs');
+        const data = await res.json();
+        
+        synapseLogsContainer.innerHTML = '';
+        data.logs.forEach(log => {
+            const logDiv = document.createElement('div');
+            logDiv.style.color = '#9a9aab';
+            if (log.includes('EXPLORING')) logDiv.style.color = '#f093fb';
+            else if (log.includes('EXPLOITING')) logDiv.style.color = '#4facfe';
+            else if (log.includes('LEARNING')) logDiv.style.color = '#00e676';
+            else if (log.includes('ANOMALY')) logDiv.style.color = '#ff1744';
+            
+            logDiv.innerText = log;
+            synapseLogsContainer.appendChild(logDiv);
+        });
+        synapseLogsContainer.scrollTop = synapseLogsContainer.scrollHeight;
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+setInterval(fetchSynapseLogs, 2000);
+fetchSynapseLogs();
+

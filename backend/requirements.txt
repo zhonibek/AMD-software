@@ -3,3 +3,6 @@ uvicorn
 websockets
 scikit-learn
 pandas
+psutil
+python-dotenv
+pynput
