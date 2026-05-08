@@ -1,32 +1,74 @@
-# AMD Stability Brain 🧠
+# 🧠 PCMANai: The Local Evolving Hardware Brain
 
-An AI-powered diagnostic and optimization layer designed for AMD hardware. It monitors real-time telemetry (CPU, GPU, RAM, Frametimes), detects anomalies using an Explainable AI (XAI) Random Forest model, and provides root-cause diagnosis for micro-stuttering.
+**PCMANai** (Personal Computing Management Artificial Intelligence) is a state-of-the-art, autonomous PC optimization agent. Unlike traditional "game boosters" that rely on static rules, PCMANai utilizes a local **Contextual Bandit Neural Network** to learn, evolve, and optimize your specific hardware environment in real-time.
 
-## How to Run the Project
-
-This project consists of two parts: a Python backend and a web frontend.
-
-### 1. Start the Python Backend
-Open a terminal (PowerShell or Command Prompt) and run:
-```powershell
-cd backend
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
-```
-
-### 2. Start the Web Frontend
-Open a **second** terminal and run:
-```powershell
-cd frontend
-python -m http.server 8080
-```
-
-### 3. Open the Dashboard
-Open your web browser and go to:
-[http://127.0.0.1:8080/](http://127.0.0.1:8080/)
+![PCMANai Dashboard Prototype](https://img.shields.io/badge/Status-Prototype-red?style=for-the-badge)
+![AI-Powered](https://img.shields.io/badge/AI-Reinforcement_Learning-blue?style=for-the-badge)
+![Local-Execution](https://img.shields.io/badge/Environment-Local_Only-green?style=for-the-badge)
 
 ---
 
-## Features
-- **Real-Time Telemetry:** Hooks directly into Windows Performance Counters and `psutil` to stream real CPU, GPU, and RAM data.
-- **Hardware Stress Testing:** The "Simulate Spike" feature dynamically allocates memory and pegs CPU cores using background PowerShell processes to test the system naturally.
-- **Explainable AI (XAI):** A Random Forest model actively scores stutter probabilities and translates raw data into human-readable warnings (e.g. "VRAM_THRASHING").
+## 🚀 Key Features
+
+### 1. Self-Evolving Local AI
+PCMANai has completely moved away from external LLMs like ChatGPT. It runs a local **SGDRegressor** (Scikit-Learn) that observes your hardware metrics and "discovers" the best optimizations through Reinforcement Learning. It saves its experience permanently to a `pcman_brain.pkl` file, getting smarter every time you use your PC.
+
+### 2. High-Fidelity Telemetry
+Monitor your system with surgical precision:
+- **Input Lag Analyzer:** Uses a global OS-level hook to measure the micro-latency between mouse clicks and processing frames.
+- **Frametime Tracking:** Real-time Chart.js visualization of frame delivery consistency.
+- **Full Hardware Stack:** Live tracking of CPU, GPU, VRAM, RAM, Disk Active Time, and Network Ping.
+
+### 3. Anomaly Simulation Suite
+Test the AI's "intelligence" by unleashing intentional hardware stressors from the dashboard:
+- **CPU Spikes:** Mathematical stress loops.
+- **Input Lag Spikes:** High-priority scheduler starvation.
+- **Memory Leaks:** Forced RAM thrashing and pagefile swapping.
+- **Disk Thrashing:** Simulated background service saturation.
+- **Bad Core Affinity:** Forcing heavy tasks onto Core 0 (the OS critical core).
+- **Ping Spikes:** Simulated network congestion.
+
+### 4. Advanced Optimization Toolkit
+PCMANai can deploy a variety of system-level "synapses" to fix lag:
+- **Ultimate Performance Toggling:** Switches Windows power plans dynamically.
+- **Process Affinity Masking:** Moves background noise away from critical CPU cores.
+- **Standby List Flushing:** Instantly purges cached RAM to stop micro-stutters.
+- **Priority Escalation:** Boosts foreground application priority to `High`.
+- **Registry Tweaking:** Real-time modification of `TcpNoDelay` and `Win32PrioritySeparation`.
+
+---
+
+## 🛠️ Technical Stack
+
+- **Backend:** Python 3.10+, FastAPI (Asynchronous API), WebSockets (Real-time data streaming).
+- **AI/ML:** Scikit-Learn (Incremental Learning), NumPy.
+- **System Control:** Psutil, Pynput, Winreg, Ctypes.
+- **Frontend:** Vanilla HTML5, CSS3 (Glassmorphism design), Javascript (ES6), Chart.js.
+
+---
+
+## ⚡ Quick Start
+
+### 1. Requirements
+Ensure you have Python installed and an elevated (Administrator) terminal:
+```bash
+pip install -r backend/requirements.txt
+```
+
+### 2. Launch
+Simply run the included batch file to start the backend and frontend:
+```bash
+./launch.bat
+```
+*Note: Administrator privileges are required for Registry and Process Priority optimizations to work.*
+
+### 3. Training the Brain
+Open the dashboard at `http://localhost:8000`. Choose an anomaly from the dropdown and click **"Simulate Anomaly"**. Watch the **Synapse Log** in the bottom right as PCMANai tries different tools, measures the reward, and learns how to fix your PC.
+
+---
+
+## 🛡️ Safety & Privacy
+PCMANai is **100% Local**. No telemetry or hardware data is ever sent to the cloud. The AI's "thoughts" stay on your machine.
+
+---
+*Developed for the AMD Challenge. Empowering hardware with autonomous intelligence.*
