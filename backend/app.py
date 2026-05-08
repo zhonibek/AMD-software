@@ -204,6 +204,25 @@ def disable_amd_ulps():
     except Exception as e:
         return f"Failed to disable AMD ULPS: {e}"
 
+def disable_mpo():
+    try:
+        key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\Dwm")
+        winreg.SetValueEx(key, "OverlayTestMode", 0, winreg.REG_DWORD, 5)
+        winreg.CloseKey(key)
+        return "Disabled MPO (Multi-Plane Overlay) to fix AMD Stuttering."
+    except Exception as e:
+        return f"Failed to disable MPO: {e}"
+
+def increase_tdr_delay():
+    try:
+        key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers")
+        winreg.SetValueEx(key, "TdrDelay", 0, winreg.REG_DWORD, 10)
+        winreg.SetValueEx(key, "TdrDdiDelay", 0, winreg.REG_DWORD, 10)
+        winreg.CloseKey(key)
+        return "Increased TDR Delay to 10 seconds to prevent AMD Driver timeouts."
+    except Exception as e:
+        return f"Failed to increase TDR Delay: {e}"
+
 def apply_optimization(config: str):
     res = "No effect."
     if config == "set_ultimate_performance_plan":
@@ -224,6 +243,10 @@ def apply_optimization(config: str):
         res = clear_standby_memory()
     elif config == "disable_amd_ulps":
         res = disable_amd_ulps()
+    elif config == "disable_mpo":
+        res = disable_mpo()
+    elif config == "increase_tdr_delay":
+        res = increase_tdr_delay()
     return res
 
 # ================= CUSTOM AI MODEL (NEURAL NETWORK) ================= #
@@ -246,7 +269,9 @@ class PCMANai:
             "unpark_cpu_cores",
             "disable_windows_game_bar",
             "clear_standby_memory",
-            "disable_amd_ulps"
+            "disable_amd_ulps",
+            "disable_mpo",
+            "increase_tdr_delay"
         ]
         self.model_path = "pcman_neural_brain.pkl"
         self.scaler = StandardScaler()
@@ -526,6 +551,18 @@ def manual_disable_bg_apps():
     except Exception as e:
         return {"status": "error", "message": f"Failed: {e}"}
 
+def manual_disable_mpo():
+    res = disable_mpo()
+    if "Failed" in res:
+        return {"status": "error", "message": res}
+    return {"status": "success", "message": res}
+
+def manual_increase_tdr():
+    res = increase_tdr_delay()
+    if "Failed" in res:
+        return {"status": "error", "message": res}
+    return {"status": "success", "message": res}
+
 @app.post("/api/manual_tweak/{tweak_name}")
 async def manual_tweak_endpoint(tweak_name: str):
     log_synapse(f"[MANUAL OVERRIDE] User requested: {tweak_name}")
@@ -537,6 +574,10 @@ async def manual_tweak_endpoint(tweak_name: str):
         return manual_deep_flush()
     elif tweak_name == "disable_bg_apps":
         return manual_disable_bg_apps()
+    elif tweak_name == "disable_mpo":
+        return manual_disable_mpo()
+    elif tweak_name == "increase_tdr":
+        return manual_increase_tdr()
     return {"status": "error", "message": "Unknown tweak."}
 
 
