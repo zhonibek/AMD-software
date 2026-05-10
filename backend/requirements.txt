@@ -7,3 +7,5 @@ scikit-learn
 numpy
 transformers
 torch
+optimum[onnxruntime-directml]
+onnxruntime-directml

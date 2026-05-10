@@ -1,4 +1,12 @@
 @echo off
+:: Check for Admin Privileges
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Requesting Administrator Privileges...
+    powershell -Command "Start-Process '%~dpnx0' -Verb RunAs"
+    exit /b
+)
+
 title AMD Stability Brain Launcher
 echo ==============================================
 echo       Starting AMD Stability Brain...

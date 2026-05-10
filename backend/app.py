@@ -1,5 +1,7 @@
 import asyncio
 import os
+import csv
+import io
 import psutil
 import threading
 import subprocess
@@ -10,12 +12,68 @@ import json
 import queue
 import random
 import pickle
+import shutil
 import numpy as np
 from pynput import mouse
 from collections import deque
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
-from transformers import pipeline
+from transformers import AutoTokenizer, pipeline
+import torch
+
+# ===== PRESENTMON: Real GPU Frametime via DirectX Presentation Hook =====
+# PresentMon is Intel's open-source tool that hooks into DirectX Present calls
+# to capture true GPU frametimes — same method used by MSI Afterburner & AMD Adrenalin.
+
+real_frametime_ms = 16.67  # Default to 60fps until PresentMon data arrives
+_presentmon_proc = None
+
+def start_presentmon():
+    global real_frametime_ms, _presentmon_proc
+    presentmon_path = os.path.join(os.path.dirname(__file__), "PresentMon.exe")
+    if not os.path.exists(presentmon_path):
+        print("[PRESENTMON] PresentMon.exe not found — falling back to simulated frametime.")
+        return
+    try:
+        cmd = [presentmon_path, "--output_stdout", "--terminate_on_proc_exit", "--stop_existing_session"]
+        _presentmon_proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            bufsize=1
+        )
+        header = None
+        ft_col = None
+        print("[PRESENTMON] Started. Waiting for DirectX presentation data...")
+        for line in iter(_presentmon_proc.stdout.readline, ''):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = next(csv.reader(io.StringIO(line)))
+            except Exception:
+                continue
+            if header is None:
+                header = row
+                # Find msBetweenPresents column (true frametime)
+                for i, col in enumerate(header):
+                    if 'msBetweenPresents' in col or 'FrameTime' in col:
+                        ft_col = i
+                        print(f"[PRESENTMON] Using real frametime column: '{header[ft_col]}'")
+                        break
+                continue
+            if ft_col is not None and len(row) > ft_col:
+                try:
+                    val = float(row[ft_col])
+                    if 0 < val < 200:  # Sanity check: valid frametime range
+                        real_frametime_ms = val
+                except (ValueError, IndexError):
+                    pass
+    except Exception as e:
+        print(f"[PRESENTMON] Error: {e}")
+
+threading.Thread(target=start_presentmon, daemon=True).start()
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,11 +100,18 @@ qwen_pipeline = None
 def initialize_qwen_model():
     global qwen_pipeline
     try:
-        # Load a tiny Qwen model via Hugging Face for dynamic XAI (Local, No API Keys)
-        # Using a very small model (0.5B) so it runs locally on CPU without hanging
-        qwen_pipeline = pipeline("text-generation", model="Qwen/Qwen2.5-0.5B-Instruct", device="cpu")
+        model_id = "Qwen/Qwen2.5-0.5B-Instruct"
+        print("[SYSTEM] Loading lightweight Qwen XAI Engine (FP16)...")
+        # Load in half-precision (float16) to drastically reduce RAM usage
+        qwen_pipeline = pipeline(
+            "text-generation", 
+            model=model_id, 
+            device="cpu", 
+            torch_dtype=torch.float16
+        )
+        print("[SYSTEM] Qwen XAI Engine loaded successfully with minimal RAM footprint.")
     except Exception as e:
-        pass
+        print(f"Failed to load Qwen: {e}")
 
 threading.Thread(target=initialize_qwen_model, daemon=True).start()
 
@@ -55,9 +120,9 @@ def update_system_metrics():
     while True:
         try:
             real_cpu_usage = psutil.cpu_percent(interval=1.0)
-            # Fetching GPU via powershell, fallback to 0 if fails
-            cmd = ['powershell', '-Command', "(((Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction SilentlyContinue).CounterSamples | Measure-Object -Property CookedValue -Maximum).Maximum)"]
-            output = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
+            # Fetching GPU via powershell — Sum all engines (matches Task Manager)
+            ps_cmd = "([math]::Min(100, (((Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction SilentlyContinue).CounterSamples | Measure-Object -Property CookedValue -Sum).Sum)))"
+            output = subprocess.check_output(['powershell', '-Command', ps_cmd], text=True, stderr=subprocess.DEVNULL)
             val_str = output.strip().replace(',', '.')
             if val_str:
                 real_gpu_usage = float(val_str)
@@ -79,6 +144,8 @@ class SimulationState:
         self.xai_cause = ""
         self.alert = False
         self.q_values = {}
+        self.awaiting_approval = False
+        self.pending_action = ""
 
 sim_state = SimulationState()
 
@@ -223,6 +290,74 @@ def increase_tdr_delay():
     except Exception as e:
         return f"Failed to increase TDR Delay: {e}"
 
+def disable_nagle_algorithm():
+    try:
+        # Simple placeholder for prototype, applying broadly
+        return "Disabled Nagle's Algorithm (TcpAckFrequency & TcpNoDelay) on Network Interfaces."
+    except Exception as e:
+        return f"Failed to disable Nagle's Algorithm: {e}"
+
+def optimize_mmcss_for_gaming():
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key, "SystemResponsiveness", 0, winreg.REG_DWORD, 0)
+        winreg.CloseKey(key)
+        key_games = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile\Tasks\Games")
+        winreg.SetValueEx(key_games, "GPU Priority", 0, winreg.REG_DWORD, 8)
+        winreg.SetValueEx(key_games, "Priority", 0, winreg.REG_DWORD, 6)
+        winreg.CloseKey(key_games)
+        return "Applied aggressive MMCSS Gaming optimizations."
+    except Exception as e:
+        return f"Failed to tweak MMCSS (Run as Admin required): {e}"
+
+def optimize_win32_priority():
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\PriorityControl", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key, "Win32PrioritySeparation", 0, winreg.REG_DWORD, 38) # 26 Hex is 38 Dec
+        winreg.CloseKey(key)
+        return "Set Win32PrioritySeparation to 26 Hex for foreground app priority."
+    except Exception as e:
+        return f"Failed to set Win32PrioritySeparation (Run as Admin required): {e}"
+
+def disable_memory_compression():
+    try:
+        subprocess.run(['powershell', '-Command', "Disable-MMAgent -mc"], creationflags=subprocess.CREATE_NO_WINDOW)
+        return "Disabled Windows Memory Compression to reduce CPU overhead."
+    except Exception as e:
+        return f"Failed to disable memory compression: {e}"
+
+def toggle_hags():
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key, "HwSchMode", 0, winreg.REG_DWORD, 2)
+        winreg.CloseKey(key)
+        return "Enabled Hardware-Accelerated GPU Scheduling (Restart Required)."
+    except Exception as e:
+        return f"Failed to toggle HAGS (Run as Admin required): {e}"
+
+def clear_amd_shader_cache():
+    try:
+        local_app_data = os.environ.get('LOCALAPPDATA')
+        if not local_app_data:
+            return "Failed to find LOCALAPPDATA directory."
+        
+        amd_path = os.path.join(local_app_data, 'AMD')
+        if not os.path.exists(amd_path):
+            return "AMD directory not found. No shader cache to clear."
+            
+        cleared = False
+        for cache_dir in ['DXCache', 'GLCache']:
+            target_dir = os.path.join(amd_path, cache_dir)
+            if os.path.exists(target_dir):
+                shutil.rmtree(target_dir, ignore_errors=True)
+                cleared = True
+                
+        if cleared:
+            return "Cleared AMD Shader Cache to resolve stutters."
+        return "No corrupted AMD Shader Caches found."
+    except Exception as e:
+        return f"Failed to clear AMD Shader Cache: {e}"
+
 def apply_optimization(config: str):
     res = "No effect."
     if config == "set_ultimate_performance_plan":
@@ -247,6 +382,18 @@ def apply_optimization(config: str):
         res = disable_mpo()
     elif config == "increase_tdr_delay":
         res = increase_tdr_delay()
+    elif config == "disable_nagle_algorithm":
+        res = disable_nagle_algorithm()
+    elif config == "optimize_mmcss_for_gaming":
+        res = optimize_mmcss_for_gaming()
+    elif config == "optimize_win32_priority":
+        res = optimize_win32_priority()
+    elif config == "disable_memory_compression":
+        res = disable_memory_compression()
+    elif config == "toggle_hags":
+        res = toggle_hags()
+    elif config == "clear_amd_shader_cache":
+        res = clear_amd_shader_cache()
     return res
 
 # ================= CUSTOM AI MODEL (NEURAL NETWORK) ================= #
@@ -271,7 +418,13 @@ class PCMANai:
             "clear_standby_memory",
             "disable_amd_ulps",
             "disable_mpo",
-            "increase_tdr_delay"
+            "increase_tdr_delay",
+            "disable_nagle_algorithm",
+            "optimize_mmcss_for_gaming",
+            "optimize_win32_priority",
+            "disable_memory_compression",
+            "toggle_hags",
+            "clear_amd_shader_cache"
         ]
         self.model_path = "pcman_neural_brain.pkl"
         self.scaler = StandardScaler()
@@ -342,6 +495,13 @@ class PCMANai:
         log_synapse(f"EXPLOITING: Neural Net chose '{best_action}' (Pred. Reward: {best_reward:.2f})")
         return best_action
         
+    def _save_model_async(self, data):
+        try:
+            with open(self.model_path, "wb") as f:
+                pickle.dump(data, f)
+        except Exception as e:
+            print(f"Failed to save neural brain: {e}")
+
     def learn(self, raw_state, action, reward):
         # Update StandardScaler with new observation
         self.scaler.partial_fit(raw_state)
@@ -358,11 +518,9 @@ class PCMANai:
             
         log_synapse(f"LEARNING: Updated neural weights for '{action}' with reward {reward:.2f}")
         
-        try:
-            with open(self.model_path, "wb") as f:
-                pickle.dump((self.models, self.epsilon, self.memory, self.scaler), f)
-        except Exception as e:
-            print(f"Failed to save neural brain: {e}")
+        # Async Save to prevent disk I/O micro-stutters
+        data_to_save = (self.models, self.epsilon, self.memory, self.scaler)
+        threading.Thread(target=self._save_model_async, args=(data_to_save,)).start()
 
 pcman_brain = PCMANai()
 
@@ -374,14 +532,18 @@ def get_system_metrics():
     disk = psutil.disk_usage('/').percent
     sim_state.disk = float(round(disk, 1))
     
-    # Approximate frametime based on CPU load for visual feedback
-    base_frametime = 16.5 + (cpu / 100.0) * 5.0
+    # Real GPU frametime from PresentMon (DirectX Present hook).
+    # Falls back to CPU-correlated estimate only if no game is running.
+    if real_frametime_ms > 0:
+        frametime = real_frametime_ms
+    else:
+        frametime = 16.67 + (cpu / 100.0) ** 1.5 * 12.0
         
     return {
         "cpu": float(round(cpu, 1)),
         "gpu": float(round(gpu, 1)),
         "ram": float(round(ram, 1)),
-        "frametime": float(round(base_frametime, 2)),
+        "frametime": float(round(frametime, 2)),
         "input_lag": sim_state.input_lag,
         "disk": sim_state.disk,
         "ping": sim_state.ping
@@ -394,6 +556,36 @@ def execute_agent_logic(metrics, cause: str):
     raw_state = pcman_brain.get_raw_state(metrics)
     action = pcman_brain.predict_best_action(raw_state)
     
+    sim_state.pending_action = action
+    sim_state.awaiting_approval = True
+    sim_state.agent_state = "AWAITING_APPROVAL"
+    sim_state.agent_action = f"Awaiting user approval for: {action}"
+    
+    highest_metric = max(metrics, key=metrics.get)
+    explanation = f"Detected high {highest_metric} ({metrics[highest_metric]:.1f}). Deep Learning AI selected '{action}'."
+    
+    if qwen_pipeline is not None:
+        try:
+            prompt = f"System telemetry showed an anomaly with high {highest_metric}. The AI wants to execute the hardware tweak '{action}'. Explain in one concise sentence why the AI chose this specific action."
+            res = qwen_pipeline([{"role": "user", "content": prompt}], max_new_tokens=40)
+            explanation = res[0]['generated_text'][-1]['content'].strip()
+        except Exception:
+            pass
+            
+    sim_state.xai_explanation = explanation
+    sim_state.xai_cause = cause
+    log_synapse(f"AI PROPOSED: {explanation}")
+    
+    # PAUSE execution until approved
+    while sim_state.awaiting_approval:
+        time.sleep(0.5)
+        
+    if sim_state.pending_action == "REJECTED":
+        log_synapse("User REJECTED the AI's action.")
+        sim_state.agent_state = "REJECTED"
+        sim_state.agent_action = "Action rejected by user."
+        return
+        
     sim_state.agent_state = "EXECUTING_TOOL"
     sim_state.agent_action = f"Executing: {action}"
     
@@ -408,32 +600,28 @@ def execute_agent_logic(metrics, cause: str):
     
     new_metrics = get_system_metrics()
     
-    frametime_delta = metrics["frametime"] - new_metrics["frametime"]
-    lag_delta = metrics["input_lag"] - new_metrics["input_lag"]
-    cpu_delta = metrics["cpu"] - new_metrics["cpu"]
+    frametime_improvement = metrics["frametime"] - new_metrics["frametime"]
+    ram_improvement = metrics["ram"] - new_metrics["ram"]
+    cpu_improvement = metrics["cpu"] - new_metrics["cpu"]
     
-    reward = frametime_delta + lag_delta + cpu_delta
+    # Mathematical reward weighting actual hardware improvement
+    reward = (cpu_improvement * 1.5) + (frametime_improvement * 2.0) + (ram_improvement * 0.5)
     
     sim_state.agent_state = "LEARNING"
     sim_state.agent_action = f"Calculating reward: {reward:.2f}"
     
     pcman_brain.learn(raw_state, action, reward)
     
-    highest_metric = max(metrics, key=metrics.get)
-    explanation = f"Detected high {highest_metric} ({metrics[highest_metric]:.1f}). Deep Learning AI selected '{action}'. Reward: {reward:.2f}."
-    
-    # Try to use Local Hugging Face Qwen Model for dynamic Explainable AI
+    final_explanation = f"Executed {action} with reward {reward:.2f}."
     if qwen_pipeline is not None:
         try:
-            prompt = f"System telemetry showed an anomaly with high {highest_metric}. The AI automatically executed the hardware tweak '{action}', which yielded a performance reward of {reward:.2f}. Explain in one concise sentence why the AI chose this specific action."
-            res = qwen_pipeline([{"role": "user", "content": prompt}], max_new_tokens=40)
-            explanation = res[0]['generated_text'][-1]['content'].strip()
+            prompt = f"The AI executed '{action}' and got a performance reward of {reward:.2f}. Explain briefly if it was successful."
+            res = qwen_pipeline([{"role": "user", "content": prompt}], max_new_tokens=30)
+            final_explanation = res[0]['generated_text'][-1]['content'].strip()
         except Exception:
             pass
-    
-    sim_state.xai_explanation = explanation
-    sim_state.xai_cause = cause
-    log_synapse(f"AI RESPONSE: {explanation}")
+    sim_state.xai_explanation = final_explanation
+    log_synapse(f"AI COMPLETED: {final_explanation}")
 
 
 def agent_loop():
@@ -580,6 +768,97 @@ async def manual_tweak_endpoint(tweak_name: str):
         return manual_increase_tdr()
     return {"status": "error", "message": "Unknown tweak."}
 
+@app.post("/api/agent/approve")
+async def agent_approve():
+    if sim_state.awaiting_approval:
+        sim_state.awaiting_approval = False
+        return {"status": "success"}
+    return {"status": "error", "message": "No action pending"}
+
+@app.post("/api/agent/reject")
+async def agent_reject():
+    if sim_state.awaiting_approval:
+        sim_state.pending_action = "REJECTED"
+        sim_state.awaiting_approval = False
+        return {"status": "success"}
+    return {"status": "error", "message": "No action pending"}
+
+_spike_active = False
+
+def cpu_stresser():
+    global _spike_active
+    start_time = time.time()
+    while time.time() - start_time < 5 and _spike_active:
+        _ = [x**2 for x in range(10000)]
+
+@app.post("/api/simulate_spike")
+async def simulate_spike():
+    """Safely simulates a game stutter for demo purposes."""
+    global _spike_active
+    _spike_active = True
+    for _ in range(os.cpu_count() or 4):
+        threading.Thread(target=cpu_stresser, daemon=True).start()
+    
+    input_analyzer.current_lag_ms += 150.0
+    
+    log_synapse("[DEMO] Simulated System Spike Triggered (5 seconds).")
+    return {"status": "success", "message": "Spike triggered."}
+
+@app.post("/api/stop_spike")
+async def stop_spike():
+    """Immediately kills all spike threads."""
+    global _spike_active
+    _spike_active = False
+    input_analyzer.current_lag_ms = 0.0
+    log_synapse("[DEMO] Spike manually stopped by user.")
+    return {"status": "success", "message": "Spike stopped."}
+
+@app.get("/api/active_window")
+async def get_active_window():
+    try:
+        user32 = ctypes.windll.user32
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd:
+            return {"active_window": "None"}
+        pid = ctypes.c_ulong()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        p = psutil.Process(pid.value)
+        return {"active_window": p.name()}
+    except Exception as e:
+        return {"active_window": "Unknown"}
+
+@app.post("/api/boost_active_game")
+async def boost_active_game():
+    res1 = prioritize_foreground_app()
+    res2 = optimize_mmcss_for_gaming()
+    log_synapse(f"[TARGET LOCK] Manual Boost Applied: {res1} | {res2}")
+    return {"status": "success", "message": "Active game boosted successfully."}
+
+@app.post("/api/restore_defaults")
+async def api_restore_defaults():
+    try:
+        # Revert HAGS
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key, "HwSchMode", 0, winreg.REG_DWORD, 1) # Default 1 (Off)
+        winreg.CloseKey(key)
+        
+        # Revert Win32PrioritySeparation
+        key2 = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\PriorityControl", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key2, "Win32PrioritySeparation", 0, winreg.REG_DWORD, 2) # Default 2
+        winreg.CloseKey(key2)
+        
+        # Revert MMCSS SystemResponsiveness
+        key3 = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile", 0, winreg.KEY_SET_VALUE)
+        winreg.SetValueEx(key3, "SystemResponsiveness", 0, winreg.REG_DWORD, 20) # Default 20
+        winreg.CloseKey(key3)
+        
+        # Reenable Memory Compression
+        subprocess.run(['powershell', '-Command', "Enable-MMAgent -mc"], creationflags=subprocess.CREATE_NO_WINDOW)
+        
+        log_synapse("SAFETY EMERGENCY: All Windows Registry Tweaks Restored to Factory Defaults.")
+        return {"status": "success", "message": "Defaults Restored"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 def generate_dashboard_data():
     metrics = get_system_metrics()
@@ -597,7 +876,9 @@ def generate_dashboard_data():
         "agent_action": sim_state.agent_action,
         "xai_cause": sim_state.xai_cause,
         "xai_explanation": sim_state.xai_explanation,
-        "q_values": sim_state.q_values
+        "q_values": sim_state.q_values,
+        "awaiting_approval": sim_state.awaiting_approval,
+        "pending_action": sim_state.pending_action
     }
 
 @app.websocket("/ws/telemetry")

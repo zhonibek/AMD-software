@@ -73,6 +73,13 @@ const xaiExplanationText = document.getElementById('xai-explanation-text');
 const qValuesContainer = document.getElementById('q-values-container');
 
 const diagnosticBtn = document.getElementById('trigger-diagnostic-btn');
+const hitlContainer = document.getElementById('hitl-container');
+const btnApprove = document.getElementById('btn-approve');
+const btnReject = document.getElementById('btn-reject');
+const simulateSpikeBtn = document.getElementById('simulate-spike-btn');
+const activeTargetName = document.getElementById('active-target-name');
+const btnBoostActive = document.getElementById('btn-boost-active');
+const btnRestoreDefaults = document.getElementById('btn-restore-defaults');
 
 ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
@@ -171,11 +178,24 @@ function updateDashboard(data) {
         // Show Agent loop active
         agentPanel.classList.add('glow');
         xaiResultContainer.classList.add('hidden');
+        
+        // Handle HITL State
+        if (data.awaiting_approval) {
+            xaiResultContainer.classList.remove('hidden');
+            xaiExplanationText.innerText = data.xai_explanation;
+            hitlContainer.style.display = 'flex';
+            hitlContainer.classList.remove('hidden');
+        } else {
+            hitlContainer.style.display = 'none';
+            hitlContainer.classList.add('hidden');
+        }
     } else {
         agentStateVal.classList.remove('high');
         statusIndicator.innerHTML = '<span class="dot green"></span> Stable';
         
         agentPanel.classList.remove('glow');
+        hitlContainer.style.display = 'none';
+        hitlContainer.classList.add('hidden');
         
         if (data.xai_explanation) {
             xaiResultContainer.classList.remove('hidden');
@@ -207,6 +227,78 @@ diagnosticBtn.addEventListener('click', () => {
     .then(res => res.json())
     .then(data => console.log(data))
     .catch(err => console.error(err));
+});
+
+const stopSpikeBtn = document.getElementById('stop-spike-btn');
+
+simulateSpikeBtn.addEventListener('click', () => {
+    fetch('http://127.0.0.1:8000/api/simulate_spike', { method: 'POST' });
+    simulateSpikeBtn.style.display = 'none';
+    stopSpikeBtn.style.display = 'inline-block';
+    // Auto-hide stop button after 5 seconds (spike duration)
+    setTimeout(() => {
+        stopSpikeBtn.style.display = 'none';
+        simulateSpikeBtn.style.display = 'inline-block';
+    }, 5000);
+});
+
+stopSpikeBtn.addEventListener('click', () => {
+    fetch('http://127.0.0.1:8000/api/stop_spike', { method: 'POST' });
+    stopSpikeBtn.style.display = 'none';
+    simulateSpikeBtn.style.display = 'inline-block';
+});
+
+btnApprove.addEventListener('click', () => {
+    fetch('http://127.0.0.1:8000/api/agent/approve', { method: 'POST' });
+});
+
+btnReject.addEventListener('click', () => {
+    fetch('http://127.0.0.1:8000/api/agent/reject', { method: 'POST' });
+});
+
+btnBoostActive.addEventListener('click', async (e) => {
+    const originalText = e.target.innerText;
+    e.target.innerText = '🚀 BOOSTING...';
+    try {
+        const res = await fetch('http://127.0.0.1:8000/api/boost_active_game', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            e.target.innerText = '⚡ BOOSTED!';
+            e.target.style.background = 'linear-gradient(135deg, #00e676, #4facfe)';
+        } else {
+            e.target.innerText = '❌ FAILED';
+        }
+    } catch (err) {
+        e.target.innerText = '❌ ERROR';
+    }
+    
+    setTimeout(() => {
+        e.target.innerText = originalText;
+        e.target.style.background = 'linear-gradient(135deg, #a020f0, #f093fb)';
+    }, 3000);
+});
+
+btnRestoreDefaults.addEventListener('click', async (e) => {
+    const originalText = e.target.innerText;
+    e.target.innerText = 'RESTORING...';
+    try {
+        const res = await fetch('http://127.0.0.1:8000/api/restore_defaults', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            e.target.innerText = 'DEFAULTS RESTORED!';
+            e.target.style.background = 'linear-gradient(135deg, #00e676, #4facfe)';
+            e.target.style.color = '#fff';
+        } else {
+            e.target.innerText = 'FAILED';
+        }
+    } catch (err) {
+        e.target.innerText = 'ERROR';
+    }
+    
+    setTimeout(() => {
+        e.target.innerText = originalText;
+        e.target.style.background = 'linear-gradient(135deg, #ff3366, #ff6b6b)';
+    }, 4000);
 });
 
 // Manual Overrides Logic
@@ -247,9 +339,10 @@ document.querySelectorAll('.override-btn').forEach(btn => {
 });
 
 // Synapse Logs Polling
-const synapseLogsContainer = document.getElementById('synapse-logs');
+const synapseLogsContainer = document.getElementById('synapse-terminal');
 
 async function fetchSynapseLogs() {
+    if (!synapseLogsContainer) return;
     try {
         const res = await fetch('http://127.0.0.1:8000/api/logs');
         const data = await res.json();
@@ -262,6 +355,7 @@ async function fetchSynapseLogs() {
             else if (log.includes('EXPLOITING')) logDiv.style.color = '#4facfe';
             else if (log.includes('LEARNING')) logDiv.style.color = '#00e676';
             else if (log.includes('ANOMALY')) logDiv.style.color = '#ff1744';
+            else if (log.includes('SAFETY')) logDiv.style.color = '#ff3366';
             
             logDiv.innerText = log;
             synapseLogsContainer.appendChild(logDiv);
@@ -274,4 +368,27 @@ async function fetchSynapseLogs() {
 
 setInterval(fetchSynapseLogs, 2000);
 fetchSynapseLogs();
+
+// Target Lock Polling
+const IGNORE_LIST = ['chrome.exe', 'opera.exe', 'msedge.exe', 'firefox.exe', 'explorer.exe', 'ApplicationFrameHost.exe', 'SearchApp.exe', 'ShellExperienceHost.exe'];
+
+async function fetchActiveWindow() {
+    try {
+        const res = await fetch('http://127.0.0.1:8000/api/active_window');
+        const data = await res.json();
+        if (data.active_window && activeTargetName) {
+            // Ignore browsers and system apps so Alt-Tabbing to dashboard doesn't lose the game target
+            const processName = data.active_window.toLowerCase();
+            const isIgnored = IGNORE_LIST.some(ignored => processName === ignored.toLowerCase());
+            
+            if (!isIgnored && data.active_window !== 'Unknown' && data.active_window !== 'None') {
+                activeTargetName.innerText = data.active_window;
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+setInterval(fetchActiveWindow, 2000);
+fetchActiveWindow();
 

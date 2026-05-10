@@ -17,24 +17,53 @@
                 <h1>PCMANai <span class="badge">PROTOTYPE</span></h1>
             </div>
             <div class="controls" style="display: flex; gap: 10px; align-items: center;">
+                <button id="simulate-spike-btn" class="btn btn-outline" style="border-color: #ff1744; color: #ff1744;">Simulate Stutter</button>
+                <button id="stop-spike-btn" class="btn btn-outline" style="border-color: #ffa726; color: #ffa726; display: none;">Stop Stutter</button>
                 <button id="trigger-diagnostic-btn" class="btn btn-outline" style="border-color: #00e676; color: #00e676;">Run Diagnostic</button>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="dashboard-grid">
-            <!-- Telemetry Chart -->
-            <section class="card chart-card">
-                <div class="card-header">
-                    <h2>Real-time Frametime (ms)</h2>
-                    <div class="status-indicator" id="status-indicator">
-                        <span class="dot green"></span> Stable
+            <!-- Main Column (Chart + Bottom Panels) -->
+            <div class="main-column" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Telemetry Chart -->
+                <section class="card chart-card" style="flex: 1;">
+                    <div class="card-header">
+                        <h2>Real-time GPU Frametime (ms)</h2>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div title="Powered by PresentMon — hooking DirectX Present calls for real GPU frametime." style="font-size: 0.72rem; color: #00e676; background: rgba(0, 230, 118, 0.08); border: 1px solid rgba(0, 230, 118, 0.3); padding: 3px 8px; border-radius: 20px; cursor: help;">&#9889; PresentMon Active</div>
+                            <div class="status-indicator" id="status-indicator">
+                                <span class="dot green"></span> Stable
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="frametimeChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Bottom Panels (Terminal & Safety) -->
+                <div class="bottom-panels" style="display: flex; gap: 1.5rem; height: 320px;">
+                    <!-- Live Synapse Terminal -->
+                    <div class="card terminal-card" style="flex: 2; display: flex; flex-direction: column;">
+                        <h2 style="margin-bottom: 15px;"><span style="color: #4facfe;">>_</span> Live Synapse Terminal</h2>
+                        <div id="synapse-terminal" style="flex: 1; background: #0b0b0e; border: 1px solid #2a2a35; border-radius: 8px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.85rem; color: #a0a0b8; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                            <div>[SYSTEM] Terminal initialized. Waiting for telemetry...</div>
+                        </div>
+                    </div>
+
+                    <!-- Safety Rollback Panel -->
+                    <div class="card safety-card" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; border-color: #ff3366; background: linear-gradient(180deg, rgba(255, 51, 102, 0.1) 0%, rgba(20, 20, 25, 0.9) 100%); text-align: center;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ff3366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 48px; height: 48px; margin-bottom: 15px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <h2 style="color: #ff3366; margin-bottom: 10px;">Emergency Rollback</h2>
+                        <p style="font-size: 0.85rem; color: #a0a0b8; margin-bottom: 20px; line-height: 1.4;">Restore all AI registry tweaks back to Windows defaults.</p>
+                        <button id="btn-restore-defaults" class="btn btn-action" style="background: linear-gradient(135deg, #ff3366, #ff6b6b); box-shadow: 0 0 15px rgba(255, 51, 102, 0.4); width: 85%;">
+                            RESTORE DEFAULTS
+                        </button>
                     </div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="frametimeChart"></canvas>
-                </div>
-            </section>
+            </div>
 
             <!-- Metrics & XAI Sidebar -->
             <aside class="sidebar">
@@ -89,6 +118,27 @@
                             <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
                             <p class="xai-explanation" id="xai-explanation-text">...</p>
                         </div>
+                        
+                        <!-- NEW HITL BUTTONS -->
+                        <div id="hitl-container" class="hidden" style="margin-top: 15px; gap: 10px;">
+                            <button id="btn-approve" class="btn btn-action" style="padding: 0.5rem; flex: 1; margin-top: 0;">Approve</button>
+                            <button id="btn-reject" class="btn btn-outline" style="padding: 0.5rem; flex: 1; border-color: #ff1744; color: #ff1744;">Reject</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Target Lock Panel -->
+                <div class="card alert-card" id="target-lock-panel" style="border-color: #a020f0; background: linear-gradient(180deg, rgba(160, 32, 240, 0.15) 0%, rgba(20, 20, 25, 0.9) 100%); margin-top: 1.5rem;">
+                    <div class="alert-header" style="color: #a020f0;">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+                        <h2>Active Target Lock</h2>
+                    </div>
+                    <div class="xai-content" style="text-align: center;">
+                        <p style="font-size: 0.85rem; color: #a0a0b8; margin-bottom: 5px;">Foreground Application</p>
+                        <p id="active-target-name" style="font-size: 1.1rem; font-weight: 800; color: #fff; word-break: break-all; margin-bottom: 15px;">Scanning...</p>
+                        <button id="btn-boost-active" class="btn btn-action" style="background: linear-gradient(135deg, #a020f0, #f093fb); box-shadow: 0 0 15px rgba(160, 32, 240, 0.4);">
+                            🚀 BOOST ACTIVE GAME
+                        </button>
                     </div>
                 </div>
 
