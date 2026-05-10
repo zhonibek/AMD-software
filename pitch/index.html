@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCMANai — Pitch Deck</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background:#0a0a0f;color:#fff;overflow-x:hidden}
+        .slide{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 80px;position:relative;border-bottom:1px solid rgba(160,32,240,0.2)}
+        .slide-title{background:radial-gradient(ellipse at center,rgba(160,32,240,0.15) 0%,#0a0a0f 70%);text-align:center}
+        .slide-title h1{font-size:5rem;font-weight:900;background:linear-gradient(135deg,#fff 0%,#a020f0 50%,#f093fb 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px;letter-spacing:-2px}
+        .slide-title .subtitle{font-size:1.6rem;color:#a0a0b8;font-weight:400;max-width:700px;line-height:1.6}
+        .slide-title .badge{display:inline-block;margin-top:30px;padding:10px 24px;background:rgba(160,32,240,0.15);border:1px solid rgba(160,32,240,0.4);border-radius:30px;font-size:0.9rem;color:#f093fb;font-weight:600}
+        .slide h2{font-size:3rem;font-weight:900;margin-bottom:50px;text-align:center;letter-spacing:-1px}
+        .slide h2 span{color:#a020f0}
+        .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1100px;width:100%}
+        .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;max-width:1100px;width:100%}
+        .card{background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:35px;transition:transform 0.3s ease}
+        .card:hover{transform:translateY(-4px)}
+        .card .icon{font-size:2.5rem;margin-bottom:15px}
+        .card h3{font-size:1.3rem;font-weight:700;margin-bottom:12px}
+        .card p{font-size:0.95rem;color:#9a9aab;line-height:1.6}
+        .problem-item{display:flex;align-items:flex-start;gap:20px;margin-bottom:30px}
+        .problem-item .num{font-size:2.5rem;font-weight:900;color:#ff3366;min-width:50px}
+        .problem-item h3{font-size:1.2rem;margin-bottom:6px}
+        .problem-item p{color:#9a9aab;font-size:0.95rem;line-height:1.5}
+        .arch-flow{display:flex;align-items:center;gap:15px;max-width:1100px;width:100%;justify-content:center;flex-wrap:wrap}
+        .arch-step{background:rgba(160,32,240,0.1);border:1px solid rgba(160,32,240,0.3);border-radius:12px;padding:20px 28px;text-align:center;min-width:160px}
+        .arch-step .step-icon{font-size:2rem;margin-bottom:8px}
+        .arch-step h4{font-size:1rem;font-weight:700;color:#f093fb}
+        .arch-step p{font-size:0.8rem;color:#9a9aab;margin-top:4px}
+        .arch-arrow{font-size:2rem;color:#a020f0}
+        .tool-tag{display:inline-block;padding:8px 16px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:20px;font-size:0.82rem;color:#00e676;font-weight:600;margin:4px}
+        .tool-tag.amd{background:rgba(255,23,68,0.08);border-color:rgba(255,23,68,0.25);color:#ff1744}
+        .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:30px;max-width:1000px;width:100%}
+        .stat-box{text-align:center}
+        .stat-box .number{font-size:3.5rem;font-weight:900;background:linear-gradient(135deg,#4facfe,#00e676);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .stat-box .label{font-size:0.9rem;color:#9a9aab;margin-top:8px}
+        .slide-cta{background:radial-gradient(ellipse at center,rgba(160,32,240,0.2) 0%,#0a0a0f 70%);text-align:center}
+        .slide-cta p{font-size:1.2rem;color:#9a9aab;max-width:600px;line-height:1.6;margin-bottom:30px}
+        .cta-link{display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#a020f0,#f093fb);border-radius:30px;font-weight:700;font-size:1.1rem;color:#fff;text-decoration:none;box-shadow:0 0 30px rgba(160,32,240,0.4)}
+        .slide-number{position:absolute;bottom:30px;right:40px;font-size:0.85rem;color:rgba(255,255,255,0.15);font-weight:700}
+    </style>
+</head>
+<body>
+    <div class="slide slide-title">
+        <h1>PCMANai</h1>
+        <p class="subtitle">Self-Learning AMD Hardware Optimizer — An autonomous AI agent that watches your PC, learns what works, and makes it faster.</p>
+        <div class="badge">AMD AI Developer Hackathon 2025</div>
+        <span class="slide-number">01</span>
+    </div>
+    <div class="slide">
+        <h2>The <span>Problem</span></h2>
+        <div style="max-width:800px;width:100%">
+            <div class="problem-item"><div class="num">1</div><div><h3>Optimization is Manual & Painful</h3><p>Gamers spend hours on YouTube/Reddit applying random registry tweaks without knowing which ones actually help their specific hardware.</p></div></div>
+            <div class="problem-item"><div class="num">2</div><div><h3>Existing Tools Are Dumb</h3><p>"Game booster" software runs static preset scripts. They don't measure results, don't learn, and don't adapt to your specific AMD GPU or CPU.</p></div></div>
+            <div class="problem-item"><div class="num">3</div><div><h3>No Feedback Loop</h3><p>Nobody measures if a tweak actually made things better or worse. Changes are applied blindly with zero scientific validation.</p></div></div>
+        </div>
+        <span class="slide-number">02</span>
+    </div>
+    <div class="slide">
+        <h2>How <span>PCMANai</span> Works</h2>
+        <div class="arch-flow">
+            <div class="arch-step"><div class="step-icon">📡</div><h4>OBSERVE</h4><p>Real CPU, GPU, frametime, RAM, ping</p></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-step"><div class="step-icon">🧠</div><h4>REASON</h4><p>Neural Network predicts best action</p></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-step"><div class="step-icon">👤</div><h4>APPROVE</h4><p>Human-in-the-Loop safety gate</p></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-step"><div class="step-icon">⚡</div><h4>ACT</h4><p>Apply registry/system tweak</p></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-step"><div class="step-icon">📊</div><h4>MEASURE</h4><p>Compare before vs after metrics</p></div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-step"><div class="step-icon">🎯</div><h4>LEARN</h4><p>Reward updates Neural Net weights</p></div>
+        </div>
+        <span class="slide-number">03</span>
+    </div>
+    <div class="slide">
+        <h2><span>18</span> Optimization Tools</h2>
+        <div style="text-align:center;max-width:900px">
+            <div style="margin-bottom:20px"><p style="color:#ff1744;font-weight:700;margin-bottom:10px;font-size:0.9rem">AMD-SPECIFIC</p>
+                <span class="tool-tag amd">Disable ULPS</span><span class="tool-tag amd">Clear Shader Cache</span><span class="tool-tag amd">Disable MPO</span><span class="tool-tag amd">Increase TDR Delay</span><span class="tool-tag amd">Toggle HAGS</span>
+            </div>
+            <div><p style="color:#00e676;font-weight:700;margin-bottom:10px;font-size:0.9rem">SYSTEM-WIDE</p>
+                <span class="tool-tag">Ultimate Performance Plan</span><span class="tool-tag">MMCSS Gaming Priority</span><span class="tool-tag">Win32 Priority Separation</span><span class="tool-tag">Disable Nagle's Algorithm</span><span class="tool-tag">Memory Compression</span><span class="tool-tag">Unpark CPU Cores</span><span class="tool-tag">Disable Game Bar</span><span class="tool-tag">Clear Standby Memory</span><span class="tool-tag">Network Throttling</span><span class="tool-tag">Mouse/Keyboard Buffer</span><span class="tool-tag">Disable Dynamic Tick</span><span class="tool-tag">Foreground App Priority</span><span class="tool-tag">Do Nothing (Control)</span>
+            </div>
+        </div>
+        <span class="slide-number">04</span>
+    </div>
+    <div class="slide">
+        <h2>Key <span>Features</span></h2>
+        <div class="grid-3">
+            <div class="card"><div class="icon">📈</div><h3>Real GPU Frametime</h3><p>PresentMon hooks into DirectX Present calls for true msBetweenPresents data. No simulations.</p></div>
+            <div class="card"><div class="icon">🧠</div><h3>Deep Learning Brain</h3><p>MLP Neural Network with Experience Replay. Learns which tweaks work for YOUR specific hardware.</p></div>
+            <div class="card"><div class="icon">🛡️</div><h3>Human-in-the-Loop</h3><p>AI explains reasoning via local Qwen 2.5 LLM. User must approve every registry change.</p></div>
+            <div class="card"><div class="icon">🎯</div><h3>Active Target Lock</h3><p>Detects your running game, ignores browsers when you Alt-Tab, and boosts it with one click.</p></div>
+            <div class="card"><div class="icon">⏮️</div><h3>Emergency Rollback</h3><p>One-click restore of all registry changes to Windows factory defaults. Full safety net.</p></div>
+            <div class="card"><div class="icon">🔒</div><h3>100% Local</h3><p>Zero cloud dependencies. AI runs on-device with FP16 inference. Your data never leaves your PC.</p></div>
+        </div>
+        <span class="slide-number">05</span>
+    </div>
+    <div class="slide">
+        <h2>By The <span>Numbers</span></h2>
+        <div class="stat-grid">
+            <div class="stat-box"><div class="number">18</div><div class="label">Optimization Tools</div></div>
+            <div class="stat-box"><div class="number">7</div><div class="label">Real-time Telemetry Channels</div></div>
+            <div class="stat-box"><div class="number">0</div><div class="label">Cloud Dependencies</div></div>
+            <div class="stat-box"><div class="number">∞</div><div class="label">Self-Learning Iterations</div></div>
+        </div>
+        <span class="slide-number">06</span>
+    </div>
+    <div class="slide">
+        <h2>Tech <span>Stack</span></h2>
+        <div class="grid-2">
+            <div class="card"><h3>Backend</h3><p>Python · FastAPI · WebSockets · psutil · scikit-learn MLP · PresentMon · Qwen 2.5 (FP16) · Windows Registry API</p></div>
+            <div class="card"><h3>Frontend</h3><p>Vanilla HTML/CSS/JS · Chart.js · Glassmorphism UI · Real-time WebSocket streaming · Dark theme dashboard</p></div>
+            <div class="card"><h3>AI / ML</h3><p>Multi-Layer Perceptron with Experience Replay · True before/after reward calculation · Async model persistence</p></div>
+            <div class="card"><h3>AMD Integration</h3><p>ULPS · MPO · TDR · Shader Cache · HAGS · GPU Performance Counters · PresentMon DirectX hooks</p></div>
+        </div>
+        <span class="slide-number">07</span>
+    </div>
+    <div class="slide slide-cta">
+        <h2>Your PC deserves an <span>AI brain.</span></h2>
+        <p>PCMANai doesn't guess. It measures, learns, and adapts — making your AMD hardware perform at its absolute peak.</p>
+        <a href="https://github.com/zhonibek/AMD-software" class="cta-link">View on GitHub →</a>
+        <span class="slide-number">08</span>
+    </div>
+</body>
+</html>
